@@ -108,20 +108,28 @@ function imageFromUrl(themeName, url)
         local code, body, headers = https.request(url, {
             headers = request_headers
         })
-        if not code == 200 then
+        if code ~= 200 then
+            if code == 404 then
+                previews[themeName] = "404"
+            end
             print("return nil : " .. code)
             return nil
         else
-            local jsonData = json.decode(body)
-            if jsonData.status == "404" then
-                previews[themeName] = {b64 = "404"}
-            else
-                local img = love.graphics.newImage(
-                    love.image.newImageData(
-                    love.filesystem.newFileData(
-                        love.data.decode("string", "base64", jsonData.content), '', 'text')))
-                previews[themeName] = {b64 = jsonData.content, img = img}
-            end
+            local rawImageData = body
+            local img = love.graphics.newImage(
+                love.filesystem.newFileData(rawImageData, "preview.png"))
+            previews[themeName] = {img = img}
+
+            -- local jsonData = json.decode(body)
+            -- if jsonData.status == "404" then
+            --     previews[themeName] = {b64 = "404"}
+            -- else
+            --     local img = love.graphics.newImage(
+            --         love.image.newImageData(
+            --         love.filesystem.newFileData(
+            --             love.data.decode("string", "base64", jsonData.content), '', 'text')))
+            --     previews[themeName] = {b64 = jsonData.content, img = img}
+            -- end
         end
     end
     return previews[themeName]
@@ -268,7 +276,8 @@ function parseThemesData(jsonData)
                     size = asset.size,
                     downloads = asset.download_count,
                     downloadUrl = asset.browser_download_url,
-                    previewUrl = "https://api.github.com/repos/MustardOS/theme/contents/" .. themeName .. "/preview.png"
+                    previewUrl = "https://api.github.com/repos/MustardOS/theme/contents/" .. themeName .. "/preview.png",
+                    previewDirectUrl = "https://raw.githubusercontent.com/MustardOS/theme/main/" .. themeName .. "/preview.png"
                 }
 
                 -- Add to themes table
@@ -712,7 +721,7 @@ function drawList()
             end
         end
 
-        imgFromUrl = imageFromUrl(filteredThemes[selectedTheme].name, filteredThemes[selectedTheme].previewUrl)
+        imgFromUrl = imageFromUrl(filteredThemes[selectedTheme].name, filteredThemes[selectedTheme].previewDirectUrl)
         if imgFromUrl then
             previewImage = imgFromUrl.img
         end
